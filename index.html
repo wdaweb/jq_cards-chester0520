@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./reset.css">
+    <title>Document</title>
+    <style>
+        body {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-image: url(./images/BG.jpg);
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        #game {
+            width: 710px;
+            height: 360px;
+            background: rgba(255, 255, 255, 0.3);
+            border: 5px solid black;
+            margin-bottom: 1rem;
+        }
+        .player{
+            width: 360px;
+            height: 150px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .red{
+            margin: 10px;
+        }
+        .red-player{
+            background: red;
+        }
+        .black{
+            margin: 10px;
+        }
+        .black-player{
+            background: red;
+        }
+
+        .chess {
+            width: 75px;
+            height: 75px;
+            border: 1px solid black;
+            position: relative;
+            transform-style: preserve-3d;
+            float: left;
+            margin: 5px;
+            transition: transform 1s;
+            cursor: pointer;
+        }
+
+        .chess-back {
+            /* background-image: url(./images/BACK.png); */
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            opacity: 1;
+        }
+
+        .chess-front {
+            /* background-image: url(./images/1.png); */
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            transform: rotateY(180deg);            
+        }
+
+        .chess-open {
+            transform: rotateY(180deg);
+            cursor: pointer;
+        }
+
+        .select {
+            background: red;
+        }
+
+        .rule {
+            width: 500px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid #333;
+            padding: 1rem 3rem;
+            font-size: 1.5rem;
+        }
+        h2 {
+            margin-top: 0.5rem;
+        }
+
+        /* .gameover {
+            background: blanchedalmond;
+            position: absolute;
+            top: 25%;
+            font-size: 2rem;
+        } */
+    </style>
+</head>
+
+<body>    
+    <table id="game">
+    </table>
+    <div class="player">        
+        <div class="red">
+            <img src="./images/32.png">
+        </div>
+        VS
+        <div class="black">
+            <img src="./images/31.png">
+        </div>
+    </div>
+    <div class="btn">
+        <input type="button" value="遊戲開始" id="btn-start" style="width:100px;height:40px;font-size:16px;margin-bottom: 2rem;">
+        <input type="button" value="再來一局" id="btn-restart"style="width:100px;height:40px;font-size:16px;margin-bottom: 2rem;" disabled>
+    </div>
+    <div class="rule">
+        <h2>遊戲規則:</h2>
+        <ol>
+            <li>棋子每方有16個，帥/將(1)、士(2)、象(2)、車(2)、馬(2)、炮(2)、兵/卒(5)</li>
+            <li>棋子大小關係: 帥/將 > 士 > 象 > 車 > 馬 > 炮 > 兵/卒，兵/卒 > 帥/將，炮若中間有隔一個棋子則比其他棋子大</li>
+            <li>當把對方棋子消滅剩餘一個，則為勝利</li>
+        </ol>
+    </div>
+    <!-- <div class="gameover">
+        <p>紅方獲勝</p>
+    </div> -->
+    <script src="./jquery-3.6.0.min.js"></script>
+    <script>
+        // 遊戲開始按鈕
+        $('#btn-start').click(function () {
+            // 棋盤
+            for (i = 0; i < 4; i++) {
+                let container =''
+                container += '<tr class="line' + i + '">'
+                for (j = 0; j < 8; j++) {
+                    container += '<td class="chess" id="'+ (i+1) + (j+1) +'"><div class="chess-back"><img src="./images/back.png"></div><div class="chess-front"><img src="./images/back.png"></div></td>'              
+                }
+                container += '</tr>'
+                $('#game').append(container)
+            }
+
+            // 洗牌        
+            const array = []
+            while(array.length < 32){
+                let random = Math.floor(Math.random() * 32) + 1
+                if(array.includes(random) === false){
+                    array.push(random)
+                }
+            }
+            for (i = 0; i < 32; i++) {                                    
+                $('.chess-front').eq(i).find('img').attr('src', `./images/${array[i]}.png`)
+                $('.chess-front').eq(i).attr('data-chess', array[i])           
+            }
+            
+            $(this).attr('disabled', true)
+            $('#btn-restart').attr('disabled', false)
+        })
+        
+        //重新開始按鈕
+        $('#btn-restart').on('click', function () {
+            $('#btn-start').attr('disabled', false)
+            $('#game').html('')
+            $(this).attr('disabled', true)
+            $('.red').removeClass('red-player')
+            $('.black').removeClass('black-player')
+        })
+        
+        // 翻牌
+        $('#game').on('click', '.chess', function () {
+
+            // 沒有翻牌過的棋子才執行動作
+            if($(this).hasClass('chess-open') === false){
+                $(this).addClass('chess-open')
+                $(this).children().remove('.chess-back')
+                $('.select').removeClass('select')
+
+                // 辨識紅黑棋
+                if($(this).children().attr('data-chess') % 2 === 1){
+                    $(this).addClass('black-chess')
+                }else if($(this).children().attr('data-chess') % 2 === 0){
+                    $(this).addClass('red-chess')
+                }
+
+                // 紅方、黑方
+                if($('.chess-open').length === 1 && $(this).children().attr('data-chess') % 2 === 0){
+                    $('.black').addClass('black-player')
+                } else if ($('.chess-open').length === 1 && $(this).children().attr('data-chess') % 2 === 1){
+                    $('.red').addClass('red-player')
+                } else if ($('.chess-open').length > 1 ){
+                    if($('.red').hasClass('red-player') === true){
+                        $('.red-player').removeClass('red-player')
+                        $('.black').addClass('black-player')
+                    }else if($('.black').hasClass('black-player') === true){
+                        $('.black').removeClass('black-player')
+                        $('.red').addClass('red-player')
+                    }
+                }
+            }
+            
+        })
+
+        // 翻牌過的棋子
+        $('#game').on('click','.chess-open',function () {
+            let select = $(this).hasClass('select')
+            let eat = parseInt($(this).children().attr('data-chess'))
+            let number = parseInt($('.select').children().attr('data-chess'))
+            let eatPlace = parseInt($(this).attr('id'))
+            let numberPlace = parseInt($('.select').attr('id'))
+            
+            // 當有棋子被選取後
+            if($('.select').length < 1){
+                let redcolor = $(this).hasClass('red-chess')
+                let blackcolor = $(this).hasClass('black-chess')
+                let redplayer = $('.red').hasClass('red-player')
+                let blackplayer = $('.black').hasClass('black-player')
+
+                // 換到紅方才能選紅棋、換到黑方才能選黑棋
+                if(redplayer === true && redcolor === true){
+                    if( select === true){
+                        $(this).removeClass('select')
+                    }else if(select === false && $('.select').length < 1 && eat > 0){
+                        $(this).addClass('select')
+                    }
+                } else if (blackplayer === true && blackcolor === true){
+                    if( select === true){
+                        $(this).removeClass('select')
+                    }else if(select === false && $('.select').length < 1 && eat > 0){
+                        $(this).addClass('select')
+                    }
+                }
+                // 當有棋子被選取後
+            } else if($('.select').length === 1){                
+                // 點到被選取的棋子還是可以取消選取
+                if(select === true){
+                        $(this).removeClass('select')
+                    // 避免空的格子被選取
+                    }else if(select === false && $('.select').length < 1 && eat > 0){
+                        $(this).addClass('select')
+                }
+                
+                // 卒 
+                if((number === 1 || number === 3 || number === 5 || number === 7 || number === 9 )&& (eat === 0 || eat === 2 || eat === 4 || eat === 6 || eat === 8 || eat === 10 || eat === 32) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('red-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('black-chess')
+                        $(this).removeClass('red-chess')
+                        $(this).addClass('black-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家
+                        $('.black').removeClass('black-player')
+                        $('.red').addClass('red-player')
+                    }
+                }
+                // 兵
+                else if((number === 2 || number === 4 || number === 6 || number === 8 || number === 10 )&& (eat === 0 || eat === 1 || eat === 3 || eat === 5 || eat === 7 || eat === 9 || eat === 31) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('black-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('red-chess')
+                        $(this).removeClass('black-chess')
+                        $(this).addClass('red-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家                                    
+                        $('.red').removeClass('red-player')
+                        $('.black').addClass('black-player')
+                        
+                    }
+                }
+
+                // 黑，馬
+                else if((number === 15 || number === 17)&& (eat === 16 || eat === 18 || number > eat) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('red-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('black-chess')
+                        $(this).removeClass('red-chess')
+                        $(this).addClass('black-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家
+                        $('.black').removeClass('black-player')
+                        $('.red').addClass('red-player')
+                    }
+                }
+
+                // 紅，馬
+                else if((number === 16 || number === 18) && (eat === 15 || eat === 17 || number > eat) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('black-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('red-chess')
+                        $(this).removeClass('black-chess')
+                        $(this).addClass('red-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家                                    
+                        $('.red').removeClass('red-player')
+                        $('.black').addClass('black-player')
+                        
+                    }
+                }
+
+                // 黑，車
+                else if((number === 19 || number === 21) && (eat === 20 || eat === 22 || number > eat) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('red-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('black-chess')
+                        $(this).removeClass('red-chess')
+                        $(this).addClass('black-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家
+                        $('.black').removeClass('black-player')
+                        $('.red').addClass('red-player')
+                    }
+                }
+
+                // 紅，車
+                else if((number === 20 || number === 22) && (eat === 19 || eat === 21 || number > eat) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('black-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('red-chess')
+                        $(this).removeClass('black-chess')
+                        $(this).addClass('red-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家                                    
+                        $('.red').removeClass('red-player')
+                        $('.black').addClass('black-player')
+                        
+                    }
+                }
+
+                // 黑，象
+                else if((number === 23 || number === 25) && (eat === 24 || eat === 26 || number > eat) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('red-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('black-chess')
+                        $(this).removeClass('red-chess')
+                        $(this).addClass('black-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家
+                        $('.black').removeClass('black-player')
+                        $('.red').addClass('red-player')
+                    }
+                }
+
+                // 紅，相
+                else if((number === 24 || number === 26) && (eat === 23 || eat === 25 || number > eat) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('black-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('red-chess')
+                        $(this).removeClass('black-chess')
+                        $(this).addClass('red-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家                                    
+                        $('.red').removeClass('red-player')
+                        $('.black').addClass('black-player')
+                        
+                    }
+                }
+
+                // 黑，士
+                else if((number === 27 || number === 29) && (eat === 28 || eat === 30 || number > eat) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('red-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('black-chess')
+                        $(this).removeClass('red-chess')
+                        $(this).addClass('black-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家
+                        $('.black').removeClass('black-player')
+                        $('.red').addClass('red-player')
+                    }
+                }
+
+                // 紅，仕
+                else if((number === 28 || number === 30) && (eat === 27 || eat === 29 || number > eat) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('black-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('red-chess')
+                        $(this).removeClass('black-chess')
+                        $(this).addClass('red-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家                                    
+                        $('.red').removeClass('red-player')
+                        $('.black').addClass('black-player')
+                        
+                    }
+                }
+
+                // 將
+                else if((number === 31) && (eat === 32 || number > eat) && (eat > 10 || eat === 0) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+
+                    let MainPicture = $('.select').find('img').attr('src')
+                    if($(this).hasClass('red-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('black-chess')
+                        $(this).removeClass('red-chess')
+                        $(this).addClass('black-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家
+                        $('.black').removeClass('black-player')
+                        $('.red').addClass('red-player')
+                    }
+                }
+
+                // 帥
+                else if((number === 32) && (number > eat) && (eat > 10 || eat === 0) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    if($(this).hasClass('black-chess') === true || eat === 0){
+                        // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('red-chess')
+                        $(this).removeClass('black-chess')
+                        $(this).addClass('red-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+
+                        // 換玩家                                    
+                        $('.red').removeClass('red-player')
+                        $('.black').addClass('black-player')
+                        
+                    }
+                }
+
+                // 黑，包
+                else if(number === 11 || number === 13){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    // 移動
+                    if((eat === 0) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                         // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        $('.select').removeClass('black-chess')
+                        $(this).removeClass('red-chess')
+                        $(this).addClass('black-chess')
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+                        
+                        // 換玩家
+                        if($('.red').hasClass('red-player') === true){
+                            $('.red-player').removeClass('red-player')
+                            $('.black').addClass('black-player')
+                        }else if($('.black').hasClass('black-player') === true){
+                            $('.black').removeClass('black-player')
+                            $('.red').addClass('red-player')
+                        }
+                    } 
+                      else if ( (eat != 0)){
+                        if(
+                            ((18 >= eatPlace && eatPlace >= 11) && (18 >= numberPlace && numberPlace>= 11)) ||
+                            ((28 >= eatPlace && eatPlace >= 21) && (28 >= numberPlace && numberPlace>= 21)) ||
+                            ((38 >= eatPlace && eatPlace >= 31) && (38 >= numberPlace && numberPlace>= 31)) ||
+                            ((48 >= eatPlace && eatPlace >= 41) && (48 >= numberPlace && numberPlace>= 41))
+                        ) {
+                            let gap = Math.abs(numberPlace-eatPlace)
+                            let numberI = parseInt(numberPlace + 1)
+                            let numberN = parseInt(numberPlace - 1)
+                            let gapArry = []
+
+                            if(numberPlace < eatPlace){
+                                for(let i = numberI; i < (numberPlace + gap); i++){
+                                let dataNumber = parseInt($(`#${i}`).children('.chess-front').attr('data-chess'))
+                                gapArry.push(dataNumber)
+                                }
+                            } else if (numberPlace > eatPlace){
+                                for(let i = numberN; i > (numberPlace - gap); i--){
+                                let dataNumber = parseInt($(`#${i}`).children('.chess-front').attr('data-chess'))
+                                gapArry.push(dataNumber)
+                                }
+                            }
+                            
+
+                            let newGap = gapArry.filter((number) =>{
+                                return number != 0
+                            })
+
+                            if(newGap.length === 1){
+                                if($(this).hasClass('red-chess') === true){
+                                    // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                                    $(this).find('img').attr('src', MainPicture)
+                                    $(this).children().attr('data-chess',number)
+
+                                    $('.select').removeClass('black-chess')
+                                    $(this).removeClass('red-chess')
+                                    $(this).addClass('black-chess')
+
+                                    //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                                    $('.select').find('img').attr('src','')
+                                    $('.select').children().attr('data-chess',0)
+                                    $('.select').removeClass('select')
+
+                                    // 換玩家                                    
+                                    $('.black').removeClass('black-player')
+                                    $('.red').addClass('red-player')
+                                    
+                                }
+                            }
+                        } else if (Math.abs(numberPlace-eatPlace) === 20 ){
+                            let next = $(`#${numberPlace + 10}`).children().attr('data-chess')
+                            if(next != 0){
+                                if($(this).hasClass('red-chess') === true){
+                                    // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                                    $(this).find('img').attr('src', MainPicture)
+                                    $(this).children().attr('data-chess',number)
+
+                                    $('.select').removeClass('black-chess')
+                                    $(this).removeClass('red-chess')
+                                    $(this).addClass('black-chess')
+
+                                    //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                                    $('.select').find('img').attr('src','')
+                                    $('.select').children().attr('data-chess',0)
+                                    $('.select').removeClass('select')
+
+                                    // 換玩家                                    
+                                    $('.black').removeClass('black-player')
+                                    $('.red').addClass('red-player')
+                                    
+                                }
+                            }
+                        }else if (Math.abs(numberPlace-eatPlace) === 30) {
+                            let next1 = $(`#${numberPlace + 10}`).children().attr('data-chess')
+                            let next2 = $(`#${numberPlace + 20}`).children().attr('data-chess')
+                            if( (next1 === 0 && next2 != 0) || (next1 != 0 && next2 === 0) ){
+                                if($(this).hasClass('red-chess') === true){
+                                    // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                                    $(this).find('img').attr('src', MainPicture)
+                                    $(this).children().attr('data-chess',number)
+
+                                    $('.select').removeClass('black-chess')
+                                    $(this).removeClass('red-chess')
+                                    $(this).addClass('black-chess')
+
+                                    //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                                    $('.select').find('img').attr('src','')
+                                    $('.select').children().attr('data-chess',0)
+                                    $('.select').removeClass('select')
+
+                                    // 換玩家                                    
+                                    $('.black').removeClass('black-player')
+                                    $('.red').addClass('red-player')
+                                    
+                                }
+                            }
+                        }
+                    }
+
+                }
+
+                // 紅，炮
+                else if(number === 12 || number === 14){
+                    let MainPicture = $('.select').find('img').attr('src')
+
+                    // 移動
+                    if((eat === 0) && (numberPlace + 10 === eatPlace || numberPlace + 1 === eatPlace || numberPlace -10 === eatPlace || numberPlace - 1 === eatPlace)){
+                         // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                        $(this).find('img').attr('src', MainPicture)
+                        $(this).children().attr('data-chess',number)
+
+                        //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                        $('.select').find('img').attr('src','')
+                        $('.select').children().attr('data-chess',0)
+                        $('.select').removeClass('select')
+                        
+                        // 換玩家                        
+                        $('.red-player').removeClass('red-player')
+                        $('.black').addClass('black-player')
+                        
+                    } 
+                      else if ( (eat != 0)){
+                        if(
+                            ((18 >= eatPlace && eatPlace >= 11) && (18 >= numberPlace && numberPlace>= 11)) ||
+                            ((28 >= eatPlace && eatPlace >= 21) && (28 >= numberPlace && numberPlace>= 21)) ||
+                            ((38 >= eatPlace && eatPlace >= 31) && (38 >= numberPlace && numberPlace>= 31)) ||
+                            ((48 >= eatPlace && eatPlace >= 41) && (48 >= numberPlace && numberPlace>= 41))
+                        ) {
+                            let gap = Math.abs(numberPlace-eatPlace)
+                            let numberI = parseInt(numberPlace + 1)
+                            let numberN = parseInt(numberPlace - 1)
+                            let gapArry = []
+
+                            if(numberPlace < eatPlace){
+                                for(let i = numberI; i < (numberPlace + gap); i++){
+                                let dataNumber = parseInt($(`#${i}`).children('.chess-front').attr('data-chess'))
+                                gapArry.push(dataNumber)
+                                }
+                            } else if (numberPlace > eatPlace){
+                                for(let i = numberN; i > (numberPlace - gap); i--){
+                                let dataNumber = parseInt($(`#${i}`).children('.chess-front').attr('data-chess'))
+                                gapArry.push(dataNumber)
+                                }
+                            }
+
+                            let newGap = gapArry.filter((number) =>{
+                                return number != 0
+                            })
+
+                            if(newGap.length === 1){
+                                if($(this).hasClass('black-chess') === true){
+                                    // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                                    $(this).find('img').attr('src', MainPicture)
+                                    $(this).children().attr('data-chess',number)
+
+                                    $('.select').removeClass('red-chess')
+                                    $(this).removeClass('black-chess')
+                                    $(this).addClass('red-chess')
+
+                                    //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                                    $('.select').find('img').attr('src','')
+                                    $('.select').children().attr('data-chess',0)
+                                    $('.select').removeClass('select')
+
+                                    // 換玩家                                    
+                                    $('.red').removeClass('red-player')
+                                    $('.black').addClass('black-player')
+                                    
+                                }
+                            }
+                        } else if (Math.abs(numberPlace-eatPlace) === 20 ){
+                            let next = $(`#${numberPlace + 10}`).children().attr('data-chess')
+                            if(next != 0){
+                                if($(this).hasClass('black-chess') === true){
+                                    // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                                    $(this).find('img').attr('src', MainPicture)
+                                    $(this).children().attr('data-chess',number)
+
+                                    $('.select').removeClass('red-chess')
+                                    $(this).removeClass('black-chess')
+                                    $(this).addClass('red-chess')
+
+                                    //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                                    $('.select').find('img').attr('src','')
+                                    $('.select').children().attr('data-chess',0)
+                                    $('.select').removeClass('select')
+
+                                    // 換玩家                                    
+                                    $('.red').removeClass('red-player')
+                                    $('.black').addClass('black-player')
+                                    
+                                }
+                            }
+                        }else if (Math.abs(numberPlace-eatPlace) === 30) {
+                            let next1 = $(`#${numberPlace + 10}`).children().attr('data-chess')
+                            let next2 = $(`#${numberPlace + 20}`).children().attr('data-chess')
+                            if( (next1 === 0 && next2 != 0) || (next1 != 0 && next2 === 0) ){
+                                if($(this).hasClass('black-chess') === true){
+                                    // 第二次點選的棋子，圖片、data 變為第一次點選的棋子
+                                    $(this).find('img').attr('src', MainPicture)
+                                    $(this).children().attr('data-chess',number)
+
+                                    $('.select').removeClass('red-chess')
+                                    $(this).removeClass('black-chess')
+                                    $(this).addClass('red-chess')
+
+                                    //第一次被點選的棋子，因為變空格，移除圖片，data 為 0，移除 select
+                                    $('.select').find('img').attr('src','')
+                                    $('.select').children().attr('data-chess',0)
+                                    $('.select').removeClass('select')
+
+                                    // 換玩家                                    
+                                    $('.red').removeClass('red-player')
+                                    $('.black').addClass('black-player')
+                                    
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+
+            // game over
+            let open = $('#game').find('.chess-open').length
+            let blackopen = $('#game').find('.black-chess').length
+            let redopen = $('#game').find('.red-chess').length
+
+            if(open === 32){
+                if(blackopen === 1){
+                    alert('紅方獲勝')
+                    $('#btn-start').attr('disabled', false)
+                    $('#game').html('')
+                    $('#btn-restart').attr('disabled', true)
+                    $('.red').removeClass('red-player')
+                    $('.black').removeClass('black-player')
+                }else if (redopen === 1){
+                    alert('黑方獲勝')
+                    $('#btn-start').attr('disabled', false)
+                    $('#game').html('')
+                    $('#btn-restart').attr('disabled', true)
+                    $('.red').removeClass('red-player')
+                    $('.black').removeClass('black-player')
+                }
+            }
+            
+        })
+        
+    </script>
+</body>
+
+</html>
